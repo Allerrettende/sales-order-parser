@@ -11,8 +11,9 @@ file = BASE_DIR / "data" / "raw" / "Order Confirmation 2025-864059.xlsx"
 # file = BASE_DIR / "data" / "raw" / "Order Confirmation 2026-864117.xlsx"
 
 
-lines = read_excel_lines(file)
-header = extract_header(lines)
+result = read_excel_lines(file)
+print(result["header_lines"])
+header = extract_header(result["header_lines"])
+# customer = result["customer_lines"]
 print(header)
-
-
+# print(customer)

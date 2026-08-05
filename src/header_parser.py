@@ -2,7 +2,7 @@ import re
 
 
 def extract_header(lines):
-
+    
     header = {
         "Sales_Order_No": None,
         "Document_Date": None,
@@ -11,12 +11,11 @@ def extract_header(lines):
         "Reference_Quote_No": None,
     }
 
-
+    # print("Extracting header information from lines...")
     for line in lines:
-
+        
         line = line.strip()
-
-
+        
         match = re.search(
             r"DOCUMENT NO\.\s+(\S+)",
             line
@@ -58,3 +57,8 @@ def extract_header(lines):
 
 
     return header
+
+def extract_header1(lines):
+    print("ddd")
+   
+
