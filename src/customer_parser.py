@@ -1,85 +1,77 @@
 import re
 
 
-def extract_customer(lines):
+def extract_customer(customer_lines):
 
     customer = {
-        "Customer_Name": None,
-        "Customer_Address": None,
-        "Customer_Postcode": None,
-        "Customer_City": None,
-        "Customer_Country": None,
+        "customer_name": None,
+        "customer_address": None,
+        "customer_postcode": None,
+        "customer_city": None,
+        "customer_country": None,
     }
 
 
-    # 找到客户名称行
-    start_index = None
+    # remove empty lines
+    # use list comprehension to filter out empty lines and strip whitespace
+    lines = [
+        line.strip()
+        for line in customer_lines
+        if line.strip()
+    ]
+
+    if len(lines) < 3:
+        return customer
+
+    # Company name
+    customer["customer_name"] = lines[0]
+
+    # Find postcode + city
+    zip_index = None
 
     for i, line in enumerate(lines):
 
-        if "Order Confirmation" in line:
-            start_index = i
+        if re.match(
+            r"^\d{5,6}\s+",
+            line
+        ):
+            zip_index = i
             break
 
 
-    if start_index is None:
+    if zip_index is None:
         return customer
-
-
-    # 客户名称
-    name_line = lines[start_index]
-
-    customer["Customer_Name"] = (
-        name_line
-        .split("Order Confirmation")[0]
-        .strip()
-    )
-
-
-    # 收集地址区域
-    customer_lines = []
-
-    for line in lines[start_index + 1:]:
-
-        line = line.strip()
-
-        print("DEBUG:", repr(line))
-        
-        if not line:
-            continue
-
-        if "DOCUMENT NO." in line:
-            break
-
-        customer_lines.append(line)
-
-
-    if len(customer_lines) < 2:
-        return customer
-
-
-    # Country
-    customer["Customer_Country"] = customer_lines[-1]
-
-
-    # Zip + City
-    zip_city = customer_lines[-2]
-
-    match = re.match(
-        r"(\d+)\s+(.+)",
-        zip_city
-    )
-
-    if match:
-        customer["Customer_Postcode"] = match.group(1)
-        customer["Customer_City"] = match.group(2)
 
 
     # Address
-    address_lines = customer_lines[:-2]
+    address_lines = lines[1:zip_index]
 
-    if address_lines:
-        customer["Customer_Address"] = " ".join(address_lines)
+    customer["customer_address"] = (
+        " ".join(address_lines)
+        if address_lines
+        else None
+    )
+
+
+    # Postcode + City
+    match = re.match(
+        r"^(\d{5,6})\s+(.+)",
+        lines[zip_index]
+    )
+
+    if match:
+
+        customer["customer_postcode"] = match.group(1)
+
+        customer["customer_city"] = match.group(2)
+
+
+    # Country
+    if zip_index + 1 < len(lines):
+
+        customer["customer_country"] = (
+            lines[zip_index + 1]
+        )
 
 
     return customer

@@ -1,27 +1,29 @@
 import re
-
+from utils import parse_amount
 
 def extract_header(lines):
     
     header = {
-        "Sales_Order_No": None,
-        "Document_Date": None,
-        "Customer_No": None,
-        "Agent": None,
-        "Reference_Quote_No": None,
+        "sales_order_no": None,
+        "document_date": None,
+        "customer_no": None,
+        "agent": None,
+        "reference_quote_no": None,
+        "currency": None,
+        "subtotal_amount": None,
+
     }
 
     # print("Extracting header information from lines...")
     for line in lines:
         
         line = line.strip()
-        
         match = re.search(
             r"DOCUMENT NO\.\s+(\S+)",
             line
         )
         if match:
-            header["Sales_Order_No"] = match.group(1)
+            header["sales_order_no"] = match.group(1)
 
 
         match = re.search(
@@ -29,7 +31,7 @@ def extract_header(lines):
             line
         )
         if match:
-            header["Document_Date"] = match.group(1)
+            header["document_date"] = match.group(1)
 
 
         match = re.search(
@@ -37,7 +39,7 @@ def extract_header(lines):
             line
         )
         if match:
-            header["Customer_No"] = match.group(1)
+            header["customer_no"] = match.group(1)
 
 
         match = re.search(
@@ -45,7 +47,7 @@ def extract_header(lines):
             line
         )
         if match:
-            header["Agent"] = match.group(1).strip()
+            header["agent"] = match.group(1).strip()
 
 
         match = re.search(
@@ -53,12 +55,18 @@ def extract_header(lines):
             line
         )
         if match:
-            header["Reference_Quote_No"] = match.group(1)
+            header["reference_quote_no"] = match.group(1)
 
+        match = re.search(
+            r"Subtotal\s+([A-Z]{3})\s+([\d.,]+)",
+            line
+        )
+        if match:
+            header["currency"] = match.group(1)
+            header["subtotal_amount"] = parse_amount(match.group(2))
 
     return header
 
-def extract_header1(lines):
-    print("ddd")
+
    
 
