@@ -1,0 +1,143 @@
+import re
+from pathlib import Path
+from extract_order_excel import read_excel_lines
+
+
+def extract_item_lines(lines):
+    """
+    提取产品行，包括主行和描述行
+    """
+    item_lines = []
+    collecting = False
+    
+    # 开始标记
+    start_pattern = re.compile(r'^Pos\.\s+Item\s+Description', re.IGNORECASE)
+    
+    # 结束标记
+    end_patterns = [
+        re.compile(r'Subtotal\s+RMB', re.IGNORECASE),
+        re.compile(r'^_x000C_', re.IGNORECASE),
+        re.compile(r'Page\s+\d+', re.IGNORECASE),
+        re.compile(r'Agreed payment', re.IGNORECASE),
+    ]
+    
+    # 需要排除的行模式（只排除明确不是产品相关的行）
+    exclude_patterns = [
+        re.compile(r'^Balance\s+'),      # Balance行
+        re.compile(r'^Subtotal\s+'),     # Subtotal行
+        re.compile(r'^Total\s+'),        # Total行
+        re.compile(r'^Page\s+'),         # Page行
+        re.compile(r'_x000C_'),          # 分页符
+        # 第二页的标题行
+        re.compile(r'^Pos\.\s+Item\s+Number\.Item\s+Description', re.IGNORECASE),
+        re.compile(r'^Item\s+Number\.Item\s+Description', re.IGNORECASE),
+        re.compile(r'^Pos\.\s+Item\s+Number\s+Item\s+Description', re.IGNORECASE),
+        re.compile(r'Lieferdatum', re.IGNORECASE),
+        # VAT行
+        re.compile(r'plus VAT', re.IGNORECASE),
+        # 纯数字行（如汇总金额行）
+        re.compile(r'^\s*[\d\.,]+\s*$'),
+    ]
+    
+    # 产品行判断：包含数量、单位、单价、金额、税码
+    product_pattern = re.compile(
+        r'\d+,\d{2}\s+'          # 数量: 1,00
+        r'[A-Za-z]+\s+'          # 单位: piece 或 Piece
+        r'[\d\.]+,\d{2}\s+'      # 单价: 1.700,00
+        r'[\d\.]+,\d{2}\s+'      # 金额: 1.700,00
+        r'\d{3}'                 # 税码: 903
+    )
+    
+    # group行模式（如 "1        - Zeochem Donghai -"）
+    group_pattern = re.compile(r'^\d+\s+-.*-\s*$')
+    
+    for line_num, line in enumerate(lines, 1):
+        line_stripped = line.strip()
+        
+        # 跳过空行
+        if not line_stripped:
+            continue
+        
+        # 检查开始标记
+        if start_pattern.search(line_stripped):
+            print(f"✅ 找到开始标记在第 {line_num} 行")
+            collecting = True
+            continue
+        
+        # 如果还没开始收集，跳过
+        if not collecting:
+            continue
+        
+        # 检查结束标记
+        should_end = False
+        for pattern in end_patterns:
+            if pattern.search(line_stripped):
+                print(f"✅ 找到结束标记在第 {line_num} 行: {repr(line_stripped[:50])}")
+                should_end = True
+                break
+        if should_end:
+            break
+        
+        # 检查是否是group行（如 "1        - Zeochem Donghai -"）
+        if group_pattern.match(line_stripped):
+            print(f"⏭️  跳过group行 [{line_num}]: {repr(line_stripped[:50])}")
+            continue
+        
+        # 检查是否应该排除（其他明确非产品行）
+        should_exclude = False
+        for pattern in exclude_patterns:
+            if pattern.search(line_stripped) or pattern.match(line_stripped):
+                print(f"⏭️  排除行 [{line_num}]: {repr(line_stripped[:50])}")
+                should_exclude = True
+                break
+        if should_exclude:
+            continue
+        
+        # 检查是否是产品行（包含价格数据）
+        is_product = product_pattern.search(line_stripped)
+        
+        if is_product:
+            # 产品主行
+            print(f"✅ 产品行 [{line_num}]: {repr(line_stripped[:60])}")
+            item_lines.append(line_stripped)
+        else:
+            # 检查是否是描述行（不以数字开头，或者是纯文本）
+            # 描述行的特征：不以数字开头，或者以空格开头
+            if not re.match(r'^\d+', line_stripped) or line_stripped.startswith(' '):
+                print(f"📝 描述行 [{line_num}]: {repr(line_stripped[:60])}")
+                item_lines.append(line_stripped)
+            else:
+                # 其他情况（可能是未识别的行）
+                print(f"⏭️  跳过未识别行 [{line_num}]: {repr(line_stripped[:50])}")
+    
+    print(f"\n总共收集了 {len(item_lines)} 行")
+    
+    return item_lines
+
+
+if __name__ == "__main__":
+    BASE_DIR = Path(__file__).resolve().parent.parent
+    
+    file = BASE_DIR / "data" / "raw" / "Order Confirmation 2026-864117.xlsx"
+    file = BASE_DIR / "data" / "raw" / "Order Confirmation 2025-864059.xlsx"
+
+    print("正在读取Excel文件...")
+    result = read_excel_lines(file)
+    all_line = result["all_lines"]
+    
+    print(f"从Excel读取了 {len(all_line)} 行")
+    print("\n开始提取产品行...")
+    print("="*80)
+    
+    data = extract_item_lines(all_line)
+    
+    print("\n" + "="*80)
+    print(f"提取了 {len(data)} 行")
+    print("="*80)
+    
+    if data:
+        print("\n提取的内容:")
+        for i, line in enumerate(data, 1):
+            print(f"{i:3d}: {line}")
+    else:
+        print("\n⚠️  没有提取到任何内容")

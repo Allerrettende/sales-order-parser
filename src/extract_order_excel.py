@@ -66,4 +66,5 @@ if __name__ == "__main__":
     # file = BASE_DIR / "data" / "raw" / "Order Confirmation 2025-864059.xlsx"
 
     result = read_excel_lines(file)
+    print(type(result))
     print(result["all_lines"])
