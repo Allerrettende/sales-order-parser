@@ -1,6 +1,6 @@
 import re
 from pathlib import Path
-from extract_order_excel import read_excel_lines
+from order_extract import read_excel_lines
 
 
 def extract_item_lines(lines):
@@ -120,17 +120,16 @@ if __name__ == "__main__":
     
     file = BASE_DIR / "data" / "raw" / "Order Confirmation 2026-864117.xlsx"
     file = BASE_DIR / "data" / "raw" / "Order Confirmation 2025-864059.xlsx"
-
+    file = BASE_DIR / "data" / "raw" / "Order Confirmation 2025-864258.xlsx"
     print("正在读取Excel文件...")
-    result = read_excel_lines(file)
-    all_line = result["all_lines"]
+    all_line= read_excel_lines(file)
     
     print(f"从Excel读取了 {len(all_line)} 行")
     print("\n开始提取产品行...")
     print("="*80)
     
     data = extract_item_lines(all_line)
-    
+  
     print("\n" + "="*80)
     print(f"提取了 {len(data)} 行")
     print("="*80)

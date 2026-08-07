@@ -26,7 +26,7 @@ def extract_items(lines):
 def extract_tax_code(line):
     
     tc = line.strip().split()[-1]
-    if tc in tax_codes:
+    if tc in tax_codes: # tax_codes defined in config.py
         return tc
     return None
 
@@ -74,5 +74,7 @@ def extract_item(line):
     return item
 
 
-item_line="1.1      Audiocode Mediant 1000B                      1,00 Piece               30.350,00              30.350,00 903"
-print(extract_item(item_line))
+
+if __name__ == "__main__":
+    item_line="1.1      Audiocode Mediant 1000B                      1,00 Piece               30.350,00              30.350,00 903"
+    print(extract_item(item_line))

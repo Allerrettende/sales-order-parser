@@ -1,6 +1,6 @@
 import re
 from pathlib import Path
-from extract_order_excel import read_excel_lines
+from order_extract import read_excel_lines
 
 
 def extract_item_lines(lines):
