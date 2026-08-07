@@ -46,12 +46,12 @@ def extract_customer_lines(all_lines):
 def extract_header_lines(all_lines):
 
     header_lines=[]
-    #header block includes top-right area, and subtotal amount line, quote line.
-    for line in all_lines[:20]:
+    #header lines include all lines except blank lines,
+    for line in all_lines:
         line=line.strip()
         if line:
             header_lines.append(line)
-        
+
     return header_lines
 
 

@@ -1,7 +1,7 @@
 import re
 
 
-def parse_customer(customer_lines):
+def parse_customer_v1(customer_lines):
 
     customer = {
         "customer_name": None,

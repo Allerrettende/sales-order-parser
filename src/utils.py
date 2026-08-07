@@ -37,6 +37,8 @@ def parse_amount(value):
 
     return float(value)
 
+
+
 if __name__ == "__main__":
     test_values = [
         "138.024,00",
