@@ -3,7 +3,7 @@ from pathlib import Path
 from order_extract import read_excel_lines
 
 
-def extract_item_lines(lines):
+def extract_item_lines_v0(lines):
     """
     提取产品行，包括主行和描述行
     """

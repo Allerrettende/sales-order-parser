@@ -1,3 +1,5 @@
+import re
+
 def parse_amount(value):
 
     if not value:
@@ -38,6 +40,32 @@ def parse_amount(value):
     return float(value)
 
 
+from datetime import datetime
+
+def extract_date(date):
+    # 数字格式: 23.10.2026
+    pattern =re.compile(r'(\d{1,2})[./-](\d{1,2})[./-](\d{4})')
+    if not date:
+        return None
+   
+    match = pattern.search(date)
+    if match:
+        day = match.group(1)
+        month = match.group(2)
+        year = match.group(3)
+        
+        # 验证日期
+        try:
+            date_obj = datetime(int(year), int(month), int(day))
+            date_result=f"{year}-{int(month):02d}-{int(day):02d}"
+            return date_result
+            
+        except ValueError:
+            # 无效日期（如 31.02.2026）
+            return None
+
+
+
 
 if __name__ == "__main__":
     test_values = [
@@ -53,4 +81,27 @@ if __name__ == "__main__":
 
     for val in test_values:
         parsed = parse_amount(val)
-        print(f"Original: {val} -> Parsed: {parsed}")       
+        print(f"Original: {val} -> Parsed: {parsed}")     
+
+
+
+
+    # 使用示例
+
+
+    test_texts = [
+        "Date 3.10.2026",
+        "Date 03/10/2026",
+        "Date 3-Oct-2026",
+        "Date 3-6-2026",
+        "Date 31.12.2026",
+        "Date 31.02.2026",  # 无效日期
+    ]
+
+    for text in test_texts:
+        result = extract_date(text)
+        print(result)
+        if result:
+            print(f"✅ {text} ")
+        else:
+            print(f"❌ {text} -> 无效日期")          
