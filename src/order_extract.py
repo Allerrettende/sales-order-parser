@@ -1,6 +1,7 @@
 import re
 import openpyxl
 from pathlib import Path
+from config import tax_codes
 
 def read_excel_lines(file_path):
 
@@ -132,15 +133,17 @@ def is_group_line(line):
     # group line（such as: "1        - Zeochem Donghai "）
     # group line（such as: "1        * Zeochem Donghai "）
     # group line（such as: "1        # Zeochem Donghai "）
-    pattern = re.compile(r'^\d+\s+[-,*,#].*$')
+    pattern = re.compile(r'^\d+\s+[-*#].*$')
     if pattern.search(line.strip()):
         return True
     return False
 
 def is_item_line(line):
     # Item line: contain Pos nr at begin, tax code at end.
-    pattern = re.compile(r'^\d+(?:\.\d+)*.*?\b\d{3}$')
-    if pattern.search(line.strip()):
+    # ?: non-capturing group, \b word boundary, \d{3} tax code
+    pattern = re.compile(r'^(\d+(?:\.\d+)*).*?\b(\d{3})$') 
+    # If the line doesn't match the expected format, or the tax code is invalid, return None
+    if pattern.search(line.strip()) and pattern.search(line.strip()).group(2) in tax_codes:
         return True
     return False
 
@@ -185,7 +188,7 @@ if __name__ == "__main__":
     # file = BASE_DIR / "data" / "raw" / "Order Confirmation 2026-864117.xlsx"
     file = BASE_DIR / "data" / "raw" / "Order Confirmation 2025-864059.xlsx"
     # file = BASE_DIR / "data" / "raw" / "Order Confirmation 2026-864118.xlsx"
-    file = BASE_DIR / "data" / "raw" / "Order Confirmation 2025-864136.xlsx"
+    # file = BASE_DIR / "data" / "raw" / "Order Confirmation 2025-864136.xlsx"
     order_data = read_excel_lines(file)
     
     # customer_lines=extract_customer_lines(order_data)

@@ -311,8 +311,8 @@ if __name__ == "__main__":
         print(f"处理文件: {file.name}")
         print("="*80)
         
-        result = read_excel_lines(file)
-        all_line = result["all_lines"]
+        result = extract_item_lines(file)
+        all_line = result
         
         print(f"从Excel读取了 {len(all_line)} 行")
         print("\n开始解析订单...")

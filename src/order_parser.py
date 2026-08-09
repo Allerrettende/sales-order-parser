@@ -1,5 +1,6 @@
 import re
 from utils import parse_amount, extract_date
+from config import tax_codes
 
 def parse_header(lines):
 
@@ -148,9 +149,91 @@ def is_country_line(line):
         # if country in line_upper:
             return True
     return False
+
+# ************ Parse item lines, including product lines and detail lines ************
+
+def parse_item(line):
+
+    """
+    Parse a product line into a structured dictionary.
+    item details will be processed separately.
+
+    the line has already been stripped and cleaned, and is a product line
+    
+    """
+
+    parts=line.split()
+
+    
+    # parse pos_number, item description, quantity, unit, unit_price, amount, tax_code from parts
+    return {
+        "pos_number": parts[0],
+        "item_description": " ".join(parts[1:-5]),
+        "item_details": None,
+        "quantity": parts[-5],
+        "unit": parts[-4],
+        "unit_price": parts[-3],
+        "amount": parts[-2],
+        "tax_code": parts[-1],
+    }
  
+
+def create_empty_item():
+
+    return {
+        "pos_number": None,
+        "item_description": None,
+        "item_details": None,
+        "quantity": None,
+        "unit": None,
+        "unit_price": None,
+        "amount": None,
+        "tax_code": None,
+    }
+
+
+ #  parse item lines with more details, including quantity, unit, unit price, amount, tax code
+
+def parse_items(lines):
+
+    current_item = None
+    for line in lines:
+        match = re.match(r'^(\d+(?:\.\d+)*).*?\b(\d{3})$', line)
+        if match:
+            if current_item:
+                # save the previous item before starting a new one
+                # the current_item is a dictionary for last product line, and the item_details is a string for all description lines.
+                yield current_item
+            # start a new item
+            current_item = parse_item(line)
+        else:
+            if current_item:
+                if current_item["item_details"]:
+                    current_item["item_details"] += " " + line
+                else:
+                    current_item["item_details"] = line
+    if current_item:
+        yield current_item
+
+
 if __name__ == "__main__":
-    cline="uddsad CHIN ltd"
-    if is_company_name_line(cline):
-        print(cline)
-    else: print("Not")
+    # 测试数据
+    test_lines = [
+        "1.12 Product A 999 pcs 10.50 1000 999",
+        "This is a detailed description of product A",
+        "It has multiple lines of description",
+        "2.0 test 10 78",
+        "this is a description for product 2",
+
+    ]
+    
+      
+
+    
+    
+    for item in parse_items(test_lines):
+        print(f"\nItem found:")
+        for key, value in item.items():
+            if value:
+                print(f"  {key}: {value}")
+ 
