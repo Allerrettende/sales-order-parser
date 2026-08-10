@@ -14,11 +14,3 @@ tax_codes = {
     },
 }
 
-
-
-
-if __name__ == "__main__":
-    tc="903"
-
-    if tc in tax_codes:
-        print(tax_codes[tc]["type"])

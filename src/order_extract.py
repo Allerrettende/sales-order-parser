@@ -7,9 +7,7 @@ def read_excel_lines(file_path):
 
     """
     Read Excel file exported from PDF.
-    Return:
-        all_lines: with all lines in the first column of the Excel file.
-        customer_lines: with lines containing customer information.
+    Return all lines as a list of strings, not stripped, only skipping empty lines
     """
     wb = openpyxl.load_workbook(
         file_path,
@@ -29,6 +27,7 @@ def read_excel_lines(file_path):
     return all_lines
 
 def extract_customer_lines(all_lines):
+    # return stripped lines that are likely to contain customer information
 
     customer_lines = []
     # Customer block is usually within first 8 rows
@@ -46,7 +45,7 @@ def extract_customer_lines(all_lines):
     return customer_lines
     
 def extract_header_lines(all_lines):
-
+    # return stripped lines that are likely to contain header information
     header_lines=[]
     #header lines include all lines except blank lines,
     for line in all_lines:
@@ -57,7 +56,7 @@ def extract_header_lines(all_lines):
     return header_lines
 
 def extract_item_lines(lines):
- 
+    #return stripped lines that are likely to contain item information, and details, with error handling and logging
     item_lines = []
     starting = False
     belong_item = False
@@ -65,12 +64,12 @@ def extract_item_lines(lines):
     for line_num, line in enumerate(lines, 1):
 
         if is_end_line(line):
-            print(f"✅ 找到结束标记在第 {line_num} 行: {repr(line)}")
+            # print(f"✅ 找到结束标记在第 {line_num} 行: {repr(line)}")
             break
 
         # Start line
         if is_start_line(line):
-            print(f"✅ 找到开始标记在第 {line_num} 行")
+            # print(f"✅ 找到开始标记在第 {line_num} 行")
             starting = True
             continue
         # skip if not start
@@ -79,39 +78,37 @@ def extract_item_lines(lines):
 
         # line should be excluded, such as line with lot space prefix, page break etc.
         if is_exlude_line(line):
-            print(f"⏭️  排除行 [{line_num}]: {repr(line.strip()[:50])}")
+            # print(f"⏭️  排除行 [{line_num}]: {repr(line.strip()[:50])}")
             continue
 
         # group line
         if is_group_line(line):
-            print(f"⏭️  跳过group行 [{line_num}]: {repr(line.strip()[:50])}")
+            # print(f"⏭️  跳过group行 [{line_num}]: {repr(line.strip()[:50])}")
             belong_item = False
             continue
         
         # Item collection: check if it is item line, 
         # if yes, collect it; if not, check if it is details line, if yes, collect it; if not, skip it.
         if is_item_line(line):
-            print(f"✅ 产品行 [{line_num}]: {repr(line.strip()[:60])}")
+            # print(f"✅ 产品行 [{line_num}]: {repr(line.strip()[:60])}")
             item_lines.append(line.strip())
             belong_item = True
-            belong_group = False
-
+  
         else:
             # item details collection base on status machine: 
-            # check status machine: if last line is item line, then next line is details line, if not, skip it.
+            # check status machine: if belong_item is True, then next line is details line, if not, skip it.
             if not belong_item:
-                print(f"⏭️  跳过group remark [{line_num}]: {repr(line.strip()[:50])}")
+                # print(f"⏭️  跳过group remark [{line_num}]: {repr(line.strip()[:50])}")
                 continue
             # check if it is remark line etc.
             if is_remark_line(line):
-                print(f"📝 备注行 [{line_num}]: {repr(line.strip()[:60])}")
+                # print(f"📝 备注行 [{line_num}]: {repr(line.strip()[:60])}")
                 continue
-            # Just conduct before one item was collected, to avoid adding other remarks before first item.
-            if belong_item:
-                print(f"📝 描述行 [{line_num}]: {repr(line.strip()[:60])}")
-                item_lines.append(line.strip())
+
+            # print(f"📝 描述行 [{line_num}]: {repr(line.strip()[:60])}")
+            item_lines.append(line.strip())
     
-    print(f"\n总共收集了 {len(item_lines)} 行")
+    # print(f"\n总共收集了 {len(item_lines)} 行")
     
     return item_lines
 
@@ -133,7 +130,7 @@ def is_group_line(line):
     # group line（such as: "1        - Zeochem Donghai "）
     # group line（such as: "1        * Zeochem Donghai "）
     # group line（such as: "1        # Zeochem Donghai "）
-    pattern = re.compile(r'^\d+\s+[-*#].*$')
+    pattern = re.compile(r'^\d+\s+[-*#].*[-*#]?$')
     if pattern.search(line.strip()):
         return True
     return False
@@ -141,7 +138,7 @@ def is_group_line(line):
 def is_item_line(line):
     # Item line: contain Pos nr at begin, tax code at end.
     # ?: non-capturing group, \b word boundary, \d{3} tax code
-    pattern = re.compile(r'^(\d+(?:\.\d+)*).*?\b(\d{3})$') 
+    pattern = re.compile(r'^(\d+(?:\.\d+)*)\s+.*?\b(\d{3})$') 
     # If the line doesn't match the expected format, or the tax code is invalid, return None
     if pattern.search(line.strip()) and pattern.search(line.strip()).group(2) in tax_codes:
         return True
@@ -170,15 +167,16 @@ def is_exlude_line(line):
         return True
     return False
 
-# some statement looks like details nut not belong to item line.
+# some statement looks like details but not belong to item line.
 # when gather the details, should exclude this line.
 def is_remark_line(line): 
 
     # remark: "         *** Lead time: 1 week.***"
-    pattern = re.compile(r'^[-,*,#].*')
+    pattern = re.compile(r'^[-*#].*')
     if pattern.search(line.strip()):
         return True
     return False
+
 
 
 # 被其他模块调用时，直接返回 lines；被 main.py 调用时，打印 lines。

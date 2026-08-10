@@ -1,46 +1,37 @@
 import re
+from datetime import datetime
 
 def parse_amount(value):
-
+    #covert string to float, handle different formats like 138.024,00 or 138,024.00
     if not value:
         return None
-
-    value = value.strip()
-
-
-    # 同时包含 . 和 ,
+    value = str(value).strip()
+    # contains both "." and ","
     if "." in value and "," in value:
-
-        # 最后出现的位置决定小数点
+        # European format if the last "," is after the last "."
         if value.rfind(",") > value.rfind("."):
-            # 欧洲格式
-            # 138.024,00
+            # European format: 138.024,00 -> 138024.00
+            # remove all "." and replace "," with "."   
             value = value.replace(".", "")
             value = value.replace(",", ".")
-
         else:
-            # 英文格式
-            # 138,024.00
+            # UK format if the last "." is after the last ","
+            # UK format: 138,024.00 -> 138024.00
+            # remove all "," and keep "." as decimal separator
             value = value.replace(",", "")
 
-
-    # 只有逗号
+    # only contains ","
+    # replace "," with "." to convert to float
     elif "," in value:
-
-        # 认为是小数
-        # 319,00
         value = value.replace(",", ".")
 
-
-    # 只有点
-    # 319.00
-    # 不处理
-
-
-    return float(value)
-
-
-from datetime import datetime
+    try:
+        # only contains "."
+        # keep "." as decimal separator, no change needed
+        return float(value)
+    # handle ValueError if the string cannot be converted to float
+    except ValueError:
+      return None
 
 def extract_date(date):
     # 数字格式: 23.10.2026
@@ -63,9 +54,6 @@ def extract_date(date):
         except ValueError:
             # 无效日期（如 31.02.2026）
             return None
-
-
-
 
 if __name__ == "__main__":
     test_values = [

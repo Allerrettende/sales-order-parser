@@ -157,61 +157,41 @@ def parse_item(line):
     """
     Parse a product line into a structured dictionary.
     item details will be processed separately.
-
     the line has already been stripped and cleaned, and is a product line
-    
+   
     """
-
     parts=line.split()
-
-    
     # parse pos_number, item description, quantity, unit, unit_price, amount, tax_code from parts
     return {
         "pos_number": parts[0],
         "item_description": " ".join(parts[1:-5]),
-        "item_details": None,
-        "quantity": parts[-5],
+        "item_details": [],
+        "quantity": parse_amount(parts[-5]),
         "unit": parts[-4],
-        "unit_price": parts[-3],
-        "amount": parts[-2],
+        "unit_price": parse_amount(parts[-3]),
+        "amount": parse_amount(parts[-2]),
         "tax_code": parts[-1],
     }
  
-
-def create_empty_item():
-
-    return {
-        "pos_number": None,
-        "item_description": None,
-        "item_details": None,
-        "quantity": None,
-        "unit": None,
-        "unit_price": None,
-        "amount": None,
-        "tax_code": None,
-    }
-
-
- #  parse item lines with more details, including quantity, unit, unit price, amount, tax code
-
-def parse_items(lines):
+ # parse item lines that have been verified through order extraction, only product lines and item details lines are included, other lines have been eliminated.
+ # The item details are the lines after the product line until the next product line or end of file.
+ # return a generator of parsed items, each item is a dictionary with keys: pos_number, item_description（list), item_details, quantity, unit, unit_price, amount, tax_code.
+def gen_parse_items(lines):
 
     current_item = None
     for line in lines:
         match = re.match(r'^(\d+(?:\.\d+)*).*?\b(\d{3})$', line)
         if match:
             if current_item:
-                # save the previous item before starting a new one
-                # the current_item is a dictionary for last product line, and the item_details is a string for all description lines.
+                # return the current parsed item before starting a new one
+                # the current_item is a dictionary for last product line, and the item_details is a multi-line string below product line.
                 yield current_item
-            # start a new item
+            # start parsing a new item
             current_item = parse_item(line)
         else:
             if current_item:
-                if current_item["item_details"]:
-                    current_item["item_details"] += " " + line
-                else:
-                    current_item["item_details"] = line
+                current_item["item_details"].append(line)
+    # return the last parsed item if any
     if current_item:
         yield current_item
 
@@ -227,11 +207,8 @@ if __name__ == "__main__":
 
     ]
     
-      
-
-    
-    
-    for item in parse_items(test_lines):
+       
+    for item in gen_parse_items(test_lines):
         print(f"\nItem found:")
         for key, value in item.items():
             if value:
