@@ -1,7 +1,6 @@
 import re
+from utils import is_item_line
 import openpyxl
-from pathlib import Path
-from config import tax_codes
 
 def read_excel_lines(file_path):
 
@@ -9,21 +8,15 @@ def read_excel_lines(file_path):
     Read Excel file exported from PDF.
     Return all lines as a list of strings, not stripped, only skipping empty lines
     """
-    wb = openpyxl.load_workbook(
-        file_path,
-        data_only=True
-    )
-
+    wb = openpyxl.load_workbook(file_path, data_only=True)
     ws = wb.active
     all_lines = []
-    # Keep original text format
     for row in ws.iter_rows():
         value = row[0].value
-        # skip if value is None or str(value).strip() == "":
         if value is None or str(value).strip() == "":
             continue 
         all_lines.append(str(value))
-
+    wb.close()
     return all_lines
 
 def extract_customer_lines(all_lines):
@@ -135,15 +128,6 @@ def is_group_line(line):
         return True
     return False
 
-def is_item_line(line):
-    # Item line: contain Pos nr at begin, tax code at end.
-    # ?: non-capturing group, \b word boundary, \d{3} tax code
-    pattern = re.compile(r'^(\d+(?:\.\d+)*)\s+.*?\b(\d{3})$') 
-    # If the line doesn't match the expected format, or the tax code is invalid, return None
-    if pattern.search(line.strip()) and pattern.search(line.strip()).group(2) in tax_codes:
-        return True
-    return False
-
 def is_exlude_line(line):
         
     # lines not like defined before, and should be eliminated.
@@ -177,19 +161,17 @@ def is_remark_line(line):
         return True
     return False
 
-
-
-# 被其他模块调用时，直接返回 lines；被 main.py 调用时，打印 lines。
 if __name__ == "__main__":
+    test_lines = [
+    "Pos.     Item Description                                            Quantity Unit                  Unit Price       All round Price TC",
+        "1.12 Product A 999 pcs 10.50 1000 910",
+        "This is a detailed description of product A",
+        "It has multiple lines of description",
+        "2.0 test 10 78",
+        "this is a description for product 2",
+        "                                                       Subtotal RMB         138.024,00 TC",
 
-    BASE_DIR = Path(__file__).resolve().parent.parent
-    # file = BASE_DIR / "data" / "raw" / "Order Confirmation 2026-864117.xlsx"
-    file = BASE_DIR / "data" / "raw" / "Order Confirmation 2025-864059.xlsx"
-    # file = BASE_DIR / "data" / "raw" / "Order Confirmation 2026-864118.xlsx"
-    # file = BASE_DIR / "data" / "raw" / "Order Confirmation 2025-864136.xlsx"
-    order_data = read_excel_lines(file)
+    ]
     
-    # customer_lines=extract_customer_lines(order_data)
-    # print(customer_lines)
-    hd=extract_item_lines(order_data)
-    print(hd)
+    item=extract_item_lines(test_lines)
+    print(item)

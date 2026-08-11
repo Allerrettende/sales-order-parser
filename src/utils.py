@@ -1,5 +1,6 @@
 import re
 from datetime import datetime
+from config import tax_codes
 
 def parse_amount(value):
     #covert string to float, handle different formats like 138.024,00 or 138,024.00
@@ -55,41 +56,12 @@ def extract_date(date):
             # 无效日期（如 31.02.2026）
             return None
 
-if __name__ == "__main__":
-    test_values = [
-        "138.024,00",
-        "138,024.00",
-        "319,00",
-        "319.00",
-        "1,234,567.89",
-        "1.234.567,89",     
-        "1234567.89",
-        "1234567,89",
-    ]
-
-    for val in test_values:
-        parsed = parse_amount(val)
-        print(f"Original: {val} -> Parsed: {parsed}")     
-
-
-
-
-    # 使用示例
-
-
-    test_texts = [
-        "Date 3.10.2026",
-        "Date 03/10/2026",
-        "Date 3-Oct-2026",
-        "Date 3-6-2026",
-        "Date 31.12.2026",
-        "Date 31.02.2026",  # 无效日期
-    ]
-
-    for text in test_texts:
-        result = extract_date(text)
-        print(result)
-        if result:
-            print(f"✅ {text} ")
-        else:
-            print(f"❌ {text} -> 无效日期")          
+def is_item_line(line):
+    # Item line: contain Pos nr at begin, tax code at end.
+    # ?: non-capturing group, \b word boundary, \d{3} tax code
+    pattern = re.compile(r'^(\d+(?:\.\d+)*)\s+.*?\b(\d{3})$') 
+    # If the line doesn't match the expected format, or the tax code is invalid, return None
+    if pattern.search(line.strip()) and pattern.search(line.strip()).group(2) in tax_codes:
+        return True
+    return False
+     

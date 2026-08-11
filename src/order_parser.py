@@ -1,6 +1,6 @@
 import re
-from utils import parse_amount, extract_date
-from config import tax_codes
+from utils import parse_amount, extract_date, is_item_line
+from order_extract import extract_item_lines, extract_customer_lines, extract_header_lines, read_excel_lines
 
 def parse_header(lines):
 
@@ -180,8 +180,7 @@ def gen_parse_items(lines):
 
     current_item = None
     for line in lines:
-        match = re.match(r'^(\d+(?:\.\d+)*).*?\b(\d{3})$', line)
-        if match:
+        if is_item_line(line):
             if current_item:
                 # return the current parsed item before starting a new one
                 # the current_item is a dictionary for last product line, and the item_details is a multi-line string below product line.
@@ -195,22 +194,51 @@ def gen_parse_items(lines):
     if current_item:
         yield current_item
 
+def parse_orders(raw_dir):
+    """
+    process all orders, return sales order list.
+    """
+    # gather all excel files
+    # raw_dir is Pathlib obj. from main.py. in case only use the obj, it is not need to import Pathlib here.
+    # sorted will convert the generator to list.
+    # since we need to know how many files are proccessed, we use list for files here,but not generator.
 
-if __name__ == "__main__":
-    # 测试数据
-    test_lines = [
-        "1.12 Product A 999 pcs 10.50 1000 999",
-        "This is a detailed description of product A",
-        "It has multiple lines of description",
-        "2.0 test 10 78",
-        "this is a description for product 2",
+    order_files = sorted(raw_dir.glob("O*.xlsx"))
+    if not order_files:
+        return []
 
-    ]
+    orders_data = []  # save all orders data，initialization is needed.
+    failed_files = []
+    for file in order_files:
+        try:
+            #Read all lines in order excel file.    
+            lines = read_excel_lines(file)
+            # parse customer
+            customer = parse_customer(extract_customer_lines(lines))
+            # parse header
+            header = parse_header(extract_header_lines(lines))
+            # parse items
+            items_generator = gen_parse_items(extract_item_lines(lines))
+            items = list(items_generator)
+            # return all necessary inforamtion of an order
+            order= {'header': header,'customer': customer,'items': items,}
+
+            # validate necessary field
+            if not order['header'].get('sales_order_no'):
+                print(f"Warning: Missing order number, {file.name}")
+
+            if order:
+                orders_data.append(order)
+            else:
+                print(f"Failed to parse {file.name}")
+
+        except Exception as e:
+            failed_files.append(file.name)
+            print(f"Error processing {file.name}: {e}")
     
-       
-    for item in gen_parse_items(test_lines):
-        print(f"\nItem found:")
-        for key, value in item.items():
-            if value:
-                print(f"  {key}: {value}")
- 
+    if failed_files:
+        print(f"Failed to parse {len(failed_files)} file(s): {', '.join(failed_files)}")
+    
+    print(f"Successfully parsed {len(orders_data)} out of {len(order_files)} file(s)")
+    return orders_data
+
