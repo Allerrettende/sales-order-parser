@@ -65,6 +65,7 @@ def orders_to_dataframe(orders_data):
         "subtotal_amount",
         "pos_number",
         "item_description",
+        "item_details",
         "quantity",
         "unit",
         "unit_price",

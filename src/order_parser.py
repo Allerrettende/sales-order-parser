@@ -193,6 +193,7 @@ def gen_parse_items(lines):
     # return the last parsed item if any
     if current_item:
         yield current_item
+    
 
 def parse_orders(raw_dir):
     """
@@ -217,9 +218,11 @@ def parse_orders(raw_dir):
             customer = parse_customer(extract_customer_lines(lines))
             # parse header
             header = parse_header(extract_header_lines(lines))
+            
             # parse items
             items_generator = gen_parse_items(extract_item_lines(lines))
             items = list(items_generator)
+            
             # return all necessary inforamtion of an order
             order= {'header': header,'customer': customer,'items': items,}
 

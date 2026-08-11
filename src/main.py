@@ -22,21 +22,21 @@ def main():
         return
 
     # Print order summary
-    print_order_summary(orders_data)
+    # print_order_summary(orders_data)
     
     # 转换为 DataFrame
     df = orders_to_dataframe(orders_data)
 
     # 显示数据预览
-    print("\n📋 Data Preview (First 5 rows):")
-    print("=" * 80)
-    preview_cols = ['sales_order_no', 'customer_name', 'item_description', 'quantity', 'amount']
-    print(df[preview_cols].head(5).to_string(index=0))
+    # print("\n📋 Data Preview (First 5 rows):")
+    # print("=" * 80)
+    # preview_cols = ['sales_order_no', 'customer_name', 'item_description', 'quantity', 'amount']
+    # print(df[preview_cols].head(5).to_string(index=0))
     
     # 导出详细数据到 Excel
-    # output_file = processed_dir / f"all_orders_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
-    # export_to_excel_with_formatting(df, output_file)
-    # print(f"\n✅ Detailed orders exported to: {output_file}")
+    output_file = processed_dir / f"all_orders_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
+    export_to_excel_with_formatting(df, output_file)
+    print(f"\n✅ Detailed orders exported to: {output_file}")
     
     # 导出统计摘要
     # export_summary_statistics(orders_data, processed_dir)

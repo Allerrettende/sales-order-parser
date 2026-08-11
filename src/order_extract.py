@@ -71,7 +71,7 @@ def extract_item_lines(lines):
 
         # line should be excluded, such as line with lot space prefix, page break etc.
         if is_exlude_line(line):
-            # print(f"⏭️  排除行 [{line_num}]: {repr(line.strip()[:50])}")
+            print(f"⏭️  排除行 [{line_num}]: {repr(line.strip()[:50])}")
             continue
 
         # group line
@@ -133,7 +133,7 @@ def is_exlude_line(line):
     # lines not like defined before, and should be eliminated.
     exclude_patterns = [
         re.compile(r'^\s{30,}.*$'),      # more than 30 spaces at the beginning of the line
-        re.compile(r'^Balance\s+'),      # contains 'Balance'
+        re.compile(r'Discount\s+'),      # contains 'Discount'
         re.compile(r'Subtotal\s+'),     # contains 'Subtotal' 
         re.compile(r'Pos.\s+.Item\s+', re.IGNORECASE), # item header lines in next page, such as: "Pos. Item Description"
         re.compile(r'_x000C_'),          # page break line in excel, should be excluded.
@@ -143,7 +143,7 @@ def is_exlude_line(line):
     for pattern in exclude_patterns:
         
         if pattern.search(line) or pattern.match(line):
-            # print(f"⏭️  exclude : {repr(pattern)}")
+            print(f"⏭️  exclude : {repr(pattern)}")
             should_exclude = True
             break
 
@@ -161,17 +161,3 @@ def is_remark_line(line):
         return True
     return False
 
-if __name__ == "__main__":
-    test_lines = [
-    "Pos.     Item Description                                            Quantity Unit                  Unit Price       All round Price TC",
-        "1.12 Product A 999 pcs 10.50 1000 910",
-        "This is a detailed description of product A",
-        "It has multiple lines of description",
-        "2.0 test 10 78",
-        "this is a description for product 2",
-        "                                                       Subtotal RMB         138.024,00 TC",
-
-    ]
-    
-    item=extract_item_lines(test_lines)
-    print(item)
