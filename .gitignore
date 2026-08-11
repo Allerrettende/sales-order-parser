@@ -1,9 +1,11 @@
 # Python virtual environment
 .venv/
 
-# Python cache
+# Python cache (自动匹配所有目录)
 __pycache__/
 *.pyc
+*.pyo
+*.pyd
 
 # Raw business data
 data/raw/
@@ -11,3 +13,6 @@ data/processed/
 
 # Excel temporary files
 ~$*.xlsx
+
+# IDE
+.vscode/
