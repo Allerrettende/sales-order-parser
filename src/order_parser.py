@@ -189,6 +189,9 @@ def gen_parse_items(lines):
             current_item = parse_item(line)
         else:
             if current_item:
+                #  Check whether it begins with a formula symbol, Force single quotes to be treated as text
+                # if line and line[0] in '=+-@':
+                #     line = ' ' + line
                 current_item["item_details"].append(line)
     # return the last parsed item if any
     if current_item:
@@ -240,7 +243,7 @@ def parse_orders(raw_dir):
             print(f"Error processing {file.name}: {e}")
     
     if failed_files:
-        print(f"Failed to parse {len(failed_files)} file(s): {', '.join(failed_files)}")
+        print(f"Error: Failed to parse {len(failed_files)} file(s): {', '.join(failed_files)}")
     
     print(f"Successfully parsed {len(orders_data)} out of {len(order_files)} file(s)")
     return orders_data

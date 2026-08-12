@@ -12,5 +12,10 @@ tax_codes = {
         "type": "outsource",
         "description": "Labor/Outsource"
     },
+
+    "900": {   
+        "type": "item and service",
+        "description": "old tax code"
+    },
 }
 

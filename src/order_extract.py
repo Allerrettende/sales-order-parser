@@ -71,7 +71,7 @@ def extract_item_lines(lines):
 
         # line should be excluded, such as line with lot space prefix, page break etc.
         if is_exlude_line(line):
-            print(f"⏭️  排除行 [{line_num}]: {repr(line.strip()[:50])}")
+            # print(f"⏭️  排除行 [{line_num}]: {repr(line.strip()[:50])}")
             continue
 
         # group line
@@ -123,7 +123,8 @@ def is_group_line(line):
     # group line（such as: "1        - Zeochem Donghai "）
     # group line（such as: "1        * Zeochem Donghai "）
     # group line（such as: "1        # Zeochem Donghai "）
-    pattern = re.compile(r'^\d+\s+[-*#].*[-*#]?$')
+    # group line（such as: "1.1        # Zeochem Donghai "）
+    pattern = re.compile(r'^(\d+(\.\d+)*)\s+[-*#].*[-*#]?$')
     if pattern.search(line.strip()):
         return True
     return False
@@ -135,7 +136,7 @@ def is_exlude_line(line):
         re.compile(r'^\s{30,}.*$'),      # more than 30 spaces at the beginning of the line
         re.compile(r'Discount\s+'),      # contains 'Discount'
         re.compile(r'Subtotal\s+'),     # contains 'Subtotal' 
-        re.compile(r'Pos.\s+.Item\s+', re.IGNORECASE), # item header lines in next page, such as: "Pos. Item Description"
+        re.compile(r'Pos.\s+', re.IGNORECASE), # item header lines in next page, such as: "Pos. Item Description"
         re.compile(r'_x000C_'),          # page break line in excel, should be excluded.
     ]
 
@@ -143,7 +144,7 @@ def is_exlude_line(line):
     for pattern in exclude_patterns:
         
         if pattern.search(line) or pattern.match(line):
-            print(f"⏭️  exclude : {repr(pattern)}")
+            # print(f"⏭️  exclude : {repr(pattern)}")
             should_exclude = True
             break
 
@@ -156,7 +157,7 @@ def is_exlude_line(line):
 def is_remark_line(line): 
 
     # remark: "         *** Lead time: 1 week.***"
-    pattern = re.compile(r'^[-*#].*')
+    pattern = re.compile(r'^[*#].*')
     if pattern.search(line.strip()):
         return True
     return False

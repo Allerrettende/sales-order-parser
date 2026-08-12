@@ -1,6 +1,5 @@
 import pandas as pd
 
-
 def orders_to_dataframe(orders_data):
     """
     将订单数据列表转换为 DataFrame
@@ -112,16 +111,17 @@ def export_to_excel_with_formatting(df, output_path):
             'L': 18,  # subtotal_amount
             'M': 12,  # pos_number
             'N': 40,  # item_description
-            'O': 12,  # quantity
-            'P': 12,  # unit
-            'Q': 15,  # unit_price
-            'R': 15,  # amount
-            'S': 12,  # tax_code
+            'O': 40,  # item_details  
+            'P': 12,  # quantity
+            'Q': 12,  # unit
+            'R': 15,  # unit_price
+            'S': 15,  # amount
+            'T': 12,  # tax_code
         }
         
         for col_letter, width in column_widths.items():
             worksheet.column_dimensions[col_letter].width = width
-        
+                
         # 设置表头样式
         from openpyxl.styles import Font, Alignment, PatternFill
         
@@ -140,71 +140,11 @@ def export_to_excel_with_formatting(df, output_path):
                 
                 # 数值列右对齐
                 col_letter = cell.column_letter
-                if col_letter in ['L', 'O', 'Q', 'R']:  # 金额和数量列
+                if col_letter in ['L', 'P', 'R', 'S']:  # 金额和数量列
                     cell.alignment = Alignment(horizontal='right', vertical='center')
-                    if col_letter in ['L', 'Q', 'R']:  # 金额列
+                    if col_letter in ['L', 'R', 'S']:  # 金额列
                         cell.number_format = '#,##0.00'
         
         # 冻结首行
         worksheet.freeze_panes = 'A2'
 
-def export_summary_statistics(orders_data, output_dir):
-    """
-    导出订单统计摘要
-    """
-    if not orders_data:
-        return
-    
-    summary_data = []
-    
-    for order_data in orders_data:
-        header = order_data['header']
-        customer = order_data['customer']
-        items = order_data['items']
-        
-        summary = {
-            'Sales Order No': header.get('sales_order_no', ''),
-            'Customer Name': customer.get('customer_name', ''),
-            'Total Items': len(items),
-            'Total Amount': header.get('subtotal_amount', 0),
-            'Currency': header.get('currency', ''),
-            'Document Date': header.get('document_date', ''),
-            'Customer No': header.get('customer_no', ''),
-            'Agent': header.get('agent', ''),
-        }
-        summary_data.append(summary)
-    
-    summary_df = pd.DataFrame(summary_data)
-    
-    # 导出统计摘要
-    summary_path = output_dir / "order_summary.xlsx"
-    with pd.ExcelWriter(summary_path, engine='openpyxl') as writer:
-        summary_df.to_excel(writer, sheet_name='Summary', index=False)
-        
-        # 设置格式
-        workbook = writer.book
-        worksheet = writer.sheets['Summary']
-        
-        for col in worksheet.columns:
-            max_length = 0
-            column = col[0].column_letter
-            for cell in col:
-                try:
-                    if len(str(cell.value)) > max_length:
-                        max_length = len(str(cell.value))
-                except:
-                    pass
-            adjusted_width = min(max_length + 2, 50)
-            worksheet.column_dimensions[column].width = adjusted_width
-        
-        # 添加统计信息
-        summary_row = len(summary_df) + 3
-        worksheet.cell(row=summary_row, column=1, value="Total Orders:")
-        worksheet.cell(row=summary_row, column=2, value=len(summary_df))
-        
-        total_amount = summary_df['Total Amount'].sum()
-        worksheet.cell(row=summary_row+1, column=1, value="Total Amount:")
-        worksheet.cell(row=summary_row+1, column=2, value=total_amount)
-        worksheet.cell(row=summary_row+1, column=2).number_format = '#,##0.00'
-    
-    print(f"📊 Summary statistics exported to: {summary_path}")
