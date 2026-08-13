@@ -83,6 +83,8 @@ def extract_item_lines(lines):
         # Item collection: check if it is item line, 
         # if yes, collect it; if not, check if it is details line, if yes, collect it; if not, skip it.
         if is_item_line(line):
+            # if line.split()[1]=="Discount":
+            #     print(line.split())
             # print(f"✅ 产品行 [{line_num}]: {repr(line.strip()[:60])}")
             item_lines.append(line.strip())
             belong_item = True
@@ -133,8 +135,7 @@ def is_exlude_line(line):
         
     # lines not like defined before, and should be eliminated.
     exclude_patterns = [
-        re.compile(r'^\s{30,}.*$'),      # more than 30 spaces at the beginning of the line
-        re.compile(r'Discount\s+'),      # contains 'Discount'
+        re.compile(r'Balance\s+'),      # contains 'Balance' when there are more than on page.
         re.compile(r'Subtotal\s+'),     # contains 'Subtotal' 
         re.compile(r'Pos.\s+', re.IGNORECASE), # item header lines in next page, such as: "Pos. Item Description"
         re.compile(r'_x000C_'),          # page break line in excel, should be excluded.
@@ -161,4 +162,6 @@ def is_remark_line(line):
     if pattern.search(line.strip()):
         return True
     return False
+
+
 

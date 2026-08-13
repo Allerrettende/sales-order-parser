@@ -170,8 +170,17 @@ def parse_item(line):
         "unit": parts[-4],
         "unit_price": parse_amount(parts[-3]),
         "amount": parse_amount(parts[-2]),
+        "discount":0, # extract when details is parsed.
         "tax_code": parts[-1],
     }
+
+def parse_item_discount(line):
+
+    # abzgl.       100.00      %                  -27,000.00
+    pattern=re.compile(r'abzgl.*%.*(-\d+(?:[.,]\d{3})*[.,]\d{2})$')
+    if pattern.search(line.strip()):
+        return parse_amount(pattern.search(line.strip()).group(1))
+    return None
  
  # parse item lines that have been verified through order extraction, only product lines and item details lines are included, other lines have been eliminated.
  # The item details are the lines after the product line until the next product line or end of file.
@@ -189,14 +198,18 @@ def gen_parse_items(lines):
             current_item = parse_item(line)
         else:
             if current_item:
+                discount=parse_item_discount(line)
+                if discount:
+                    current_item["discount"]=discount
                 #  Check whether it begins with a formula symbol, Force single quotes to be treated as text
                 # if line and line[0] in '=+-@':
                 #     line = ' ' + line
-                current_item["item_details"].append(line)
+                else:
+                    current_item["item_details"].append(line)
     # return the last parsed item if any
     if current_item:
         yield current_item
-    
+
 
 def parse_orders(raw_dir):
     """

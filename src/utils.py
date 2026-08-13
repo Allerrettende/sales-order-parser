@@ -61,7 +61,8 @@ def is_item_line(line):
     # ?: non-capturing group, \b word boundary, \d{3} tax code
     pattern = re.compile(r'^(\d+(?:\.\d+)*)\s+.*?\b(\d{3})$') 
     # If the line doesn't match the expected format, or the tax code is invalid, return None
-    if pattern.search(line.strip()) and pattern.search(line.strip()).group(2) in tax_codes:
-        return True
+    if pattern.search(line.strip()):
+        if pattern.search(line.strip()).group(2) in tax_codes:
+            return True
     return False
      

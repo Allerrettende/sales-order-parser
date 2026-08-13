@@ -41,6 +41,7 @@ def orders_to_dataframe(orders_data):
                 "unit": item.get('unit', ''),
                 "unit_price": item.get('unit_price', 0),
                 "amount": item.get('amount', 0),
+                "discount":item.get('discount',0),
                 "tax_code": item.get('tax_code', ''),
             }
             all_rows.append(row)
@@ -48,8 +49,8 @@ def orders_to_dataframe(orders_data):
     # 创建 DataFrame
     df = pd.DataFrame(all_rows)
     
-    # 重新排列列的顺序
-    columns = [
+    # 定义列的显示顺序
+    column_order = [
         "sales_order_no",
         "document_date",
         "customer_no",
@@ -69,14 +70,99 @@ def orders_to_dataframe(orders_data):
         "unit",
         "unit_price",
         "amount",
+        "discount",
         "tax_code",
     ]
     
-    # 只保留存在的列
-    existing_columns = [col for col in columns if col in df.columns]
+    # 只保留存在的列并按指定顺序排列
+    existing_columns = [col for col in column_order if col in df.columns]
     df = df[existing_columns]
     
     return df
+
+def apply_excel_formatting(worksheet, df, df_columns):
+    """
+    对 Excel 工作表应用格式化样式
+    
+    Args:
+        worksheet: openpyxl 工作表对象
+        df: 原始 DataFrame
+        df_columns: DataFrame 的列名列表
+    """
+    from openpyxl.styles import Font, PatternFill, Alignment
+    from openpyxl.utils import get_column_letter
+    
+    # 设置列宽 - 使用列名定义
+    column_widths = {
+        'sales_order_no': 18,
+        'document_date': 15,
+        'customer_no': 15,
+        'customer_name': 30,
+        'customer_address': 35,
+        'customer_postcode': 15,
+        'customer_city': 20,
+        'customer_country': 15,
+        'agent': 18,
+        'reference_quote_no': 20,
+        'currency': 12,
+        'subtotal_amount': 18,
+        'pos_number': 12,
+        'item_description': 40,
+        'item_details': 48,
+        'quantity': 12,
+        'unit': 12,
+        'unit_price': 15,
+        'amount': 15,
+        'discount':15,
+        'tax_code': 12,
+    }
+    
+    # 为每一列设置宽度
+    for col_idx, col_name in enumerate(df_columns, start=1):
+        col_letter = get_column_letter(col_idx)
+        if col_name in column_widths:
+            worksheet.column_dimensions[col_letter].width = column_widths[col_name]
+        else:
+            # 如果没有指定宽度，根据内容自动调整（但限制最大宽度）
+            max_length = max(
+                df[col_name].astype(str).map(len).max(),
+                len(col_name)
+            )
+            worksheet.column_dimensions[col_letter].width = min(max_length + 2, 50)
+    
+    # 设置表头样式
+    header_font = Font(name='Arial', size=10, bold=True, color="FFFFFF")
+    header_fill = PatternFill(start_color="366092", end_color="366092", fill_type="solid")
+    
+    for cell in worksheet[1]:  # 第一行是表头
+        cell.font = header_font
+        cell.fill = header_fill
+        cell.alignment = Alignment(horizontal='center', vertical='center')
+    
+    # 定义需要右对齐和数字格式的列
+    right_align_columns = ['subtotal_amount', 'quantity', 'unit_price', 'amount','discount']
+    number_format_columns = ['subtotal_amount', 'unit_price', 'amount','discount']
+    
+    # 设置数据格式
+    for row in worksheet.iter_rows(min_row=2):
+        for cell in row:
+            # 默认左对齐
+            cell.alignment = Alignment(horizontal='left', vertical='center')
+            
+            # 获取列名
+            col_name = df_columns[cell.column - 1]
+            
+            # 特定列右对齐
+            if col_name in right_align_columns:
+                cell.alignment = Alignment(horizontal='right', vertical='center')
+            
+            # 金额列设置数字格式
+            if col_name in number_format_columns:
+                cell.number_format = '#,##0.00'
+    
+    # 冻结首行
+    worksheet.freeze_panes = 'A2'
+
 
 def export_to_excel_with_formatting(df, output_path):
     """
@@ -91,60 +177,7 @@ def export_to_excel_with_formatting(df, output_path):
         # 写入数据
         df.to_excel(writer, sheet_name='Orders', index=False)
         
-        # 获取工作表
-        workbook = writer.book
+        # 获取工作表并应用格式化
         worksheet = writer.sheets['Orders']
-        
-        # 设置列宽
-        column_widths = {
-            'A': 18,  # sales_order_no
-            'B': 15,  # document_date
-            'C': 15,  # customer_no
-            'D': 30,  # customer_name
-            'E': 35,  # customer_address
-            'F': 15,  # customer_postcode
-            'G': 20,  # customer_city
-            'H': 15,  # customer_country
-            'I': 18,  # agent
-            'J': 20,  # reference_quote_no
-            'K': 12,  # currency
-            'L': 18,  # subtotal_amount
-            'M': 12,  # pos_number
-            'N': 40,  # item_description
-            'O': 40,  # item_details  
-            'P': 12,  # quantity
-            'Q': 12,  # unit
-            'R': 15,  # unit_price
-            'S': 15,  # amount
-            'T': 12,  # tax_code
-        }
-        
-        for col_letter, width in column_widths.items():
-            worksheet.column_dimensions[col_letter].width = width
-                
-        # 设置表头样式
-        from openpyxl.styles import Font, Alignment, PatternFill
-        
-        header_font = Font(name='Arial', size=10, bold=True, color="FFFFFF")
-        header_fill = PatternFill(start_color="366092", end_color="366092", fill_type="solid")
-        
-        for cell in worksheet[1]:  # 第一行是表头
-            cell.font = header_font
-            cell.fill = header_fill
-            cell.alignment = Alignment(horizontal='center', vertical='center')
-        
-        # 设置数据格式
-        for row in worksheet.iter_rows(min_row=2):
-            for cell in row:
-                cell.alignment = Alignment(horizontal='left', vertical='center')
-                
-                # 数值列右对齐
-                col_letter = cell.column_letter
-                if col_letter in ['L', 'P', 'R', 'S']:  # 金额和数量列
-                    cell.alignment = Alignment(horizontal='right', vertical='center')
-                    if col_letter in ['L', 'R', 'S']:  # 金额列
-                        cell.number_format = '#,##0.00'
-        
-        # 冻结首行
-        worksheet.freeze_panes = 'A2'
-
+        df_columns = df.columns.tolist()
+        apply_excel_formatting(worksheet, df, df_columns)
