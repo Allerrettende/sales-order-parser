@@ -161,6 +161,21 @@ def parse_item(line):
    
     """
     parts=line.split()
+
+    # if is_group_line(line):
+    #     # group line（such as: "1        - Zeochem Donghai "）
+    #     return {
+    #         "pos_number": parts[0],
+    #         "item_description": " ".join(parts[1:]),
+    #         "item_details": [],
+    #         "quantity": 0,
+    #         "unit": '',
+    #         "unit_price": 0,
+    #         "amount": 0,
+    #         "discount":0, # extract when details is parsed.
+    #         "tax_code": '',
+    #     }
+    
     # parse pos_number, item description, quantity, unit, unit_price, amount, tax_code from parts
     return {
         "pos_number": parts[0],
@@ -177,7 +192,7 @@ def parse_item(line):
 def parse_item_discount(line):
 
     # abzgl.       100.00      %                  -27,000.00
-    pattern=re.compile(r'abzgl.*%.*(-\d+(?:[.,]\d{3})*[.,]\d{2})$')
+    pattern=re.compile(r'.*%.*(-\d+(?:[.,]\d{3})*[.,]\d{2})$')
     if pattern.search(line.strip()):
         return parse_amount(pattern.search(line.strip()).group(1))
     return None
@@ -188,9 +203,12 @@ def parse_item_discount(line):
 def gen_parse_items(lines):
 
     current_item = None
+
     for line in lines:
+
         if is_item_line(line):
             if current_item:
+                
                 # return the current parsed item before starting a new one
                 # the current_item is a dictionary for last product line, and the item_details is a multi-line string below product line.
                 yield current_item

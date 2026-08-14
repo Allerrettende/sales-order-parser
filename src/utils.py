@@ -56,13 +56,21 @@ def extract_date(date):
             # 无效日期（如 31.02.2026）
             return None
 
+
+
 def is_item_line(line):
-    # Item line: contain Pos nr at begin, tax code at end.
-    # ?: non-capturing group, \b word boundary, \d{3} tax code
-    pattern = re.compile(r'^(\d+(?:\.\d+)*)\s+.*?\b(\d{3})$') 
-    # If the line doesn't match the expected format, or the tax code is invalid, return None
+    # Item line: contain Pos nr at begin, and two amount format， and last 1-3 digits.
+    # including group discount.
+    pattern = re.compile(r'^(\d+(?:\.\d+)*)\s+.*\s+(-?\d+(?:[.,]\d{3})*[.,]\d{2})\s+(-?\d+(?:[.,]\d{3})*[.,]\d{2})\s+\d{1,3}$') 
+    # If the line doesn't match the expected format return None
     if pattern.search(line.strip()):
-        if pattern.search(line.strip()).group(2) in tax_codes:
-            return True
+        return True
     return False
-     
+
+def is_group_Head_line(line):
+    # group line（such as: "1        - Zeochem Donghai - 18,298.00"）
+
+    pattern = re.compile(r'^(\d+(\.\d+)*)\s+[-*#].*[-*#]?\d{2}$')
+    if pattern.search(line.strip()):
+        return True
+    return False

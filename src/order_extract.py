@@ -73,10 +73,10 @@ def extract_item_lines(lines):
         if is_exlude_line(line):
             # print(f"⏭️  排除行 [{line_num}]: {repr(line.strip()[:50])}")
             continue
-
+       
         # group line
         if is_group_line(line):
-            # print(f"⏭️  跳过group行 [{line_num}]: {repr(line.strip()[:50])}")
+            # print(f"⏭️  group行 [{line_num}]: {repr(line.strip()[:50])}")
             belong_item = False
             continue
         
@@ -93,15 +93,13 @@ def extract_item_lines(lines):
             # item details collection base on status machine: 
             # check status machine: if belong_item is True, then next line is details line, if not, skip it.
             if not belong_item:
-                # print(f"⏭️  跳过group remark [{line_num}]: {repr(line.strip()[:50])}")
+                # print(f"⏭️  跳过group details [{line_num}]: {repr(line.strip()[:50])}")
                 continue
-            # check if it is remark line etc.
-            if is_remark_line(line):
-                # print(f"📝 备注行 [{line_num}]: {repr(line.strip()[:60])}")
-                continue
+
 
             # print(f"📝 描述行 [{line_num}]: {repr(line.strip()[:60])}")
             item_lines.append(line.strip())
+        
     
     # print(f"\n总共收集了 {len(item_lines)} 行")
     
@@ -122,11 +120,11 @@ def is_start_line(line):
     return False
  
 def is_group_line(line):
-    # group line（such as: "1        - Zeochem Donghai "）
-    # group line（such as: "1        * Zeochem Donghai "）
-    # group line（such as: "1        # Zeochem Donghai "）
+    # group line（such as: "1        - Zeochem Donghai -"）
+    # group line（such as: "1        * Zeochem Donghai *"）
+    # group line（such as: "1        # Zeochem Donghai #"）
     # group line（such as: "1.1        # Zeochem Donghai "）
-    pattern = re.compile(r'^(\d+(\.\d+)*)\s+[-*#].*[-*#]?$')
+    pattern = re.compile(r'^(\d+(\.\d+)*)\s+[-*#].*[-*#]$')
     if pattern.search(line.strip()):
         return True
     return False
@@ -137,8 +135,12 @@ def is_exlude_line(line):
     exclude_patterns = [
         re.compile(r'Balance\s+'),      # contains 'Balance' when there are more than on page.
         re.compile(r'Subtotal\s+'),     # contains 'Subtotal' 
-        re.compile(r'Pos.\s+', re.IGNORECASE), # item header lines in next page, such as: "Pos. Item Description"
+        re.compile(r'Order Confirmation\s+\d{4}-\d{6}'),     # contains 'Order Confirmation 2024-864223        Page      2 From 2' 
+        re.compile(r'Pos\.*Unit.*Price', re.IGNORECASE), # item header lines in next page, such as: "Pos. Unit Price"
+        re.compile(r'Pos\..*Numbe', re.IGNORECASE), # header line, such as 'Pos.        Numbe'
+        re.compile(r'Unit.*Price', re.IGNORECASE), # header line, such as 'Pos.        Numbe'Unit.*Price
         re.compile(r'_x000C_'),          # page break line in excel, should be excluded.
+        re.compile(r'^[*#].*'),         # # remark: "         *** Lead time: 1 week.***"
     ]
 
     should_exclude = False
