@@ -13,10 +13,10 @@ def main():
 
     # 输入和输出目录
     # test data
-    raw_data_dir = Path(r"D:\PythonProjects\sales-order-parser\data\raw")
+    # raw_data_dir = Path(r"D:\PythonProjects\sales-order-parser\data\raw")
 
     # real data
-    # raw_data_dir = Path(r"D:\OC\OC20260813-Excel-Txt")
+    raw_data_dir = Path(r"D:\OC\OC20260815-Excel-Txt")
     processed_dir = Path(r"D:\PythonProjects\sales-order-parser\data\processed")
     processed_dir.mkdir(parents=True, exist_ok=True)
 

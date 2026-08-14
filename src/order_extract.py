@@ -1,5 +1,5 @@
 import re
-from utils import is_item_line
+from utils import is_product_line 
 import openpyxl
 
 def read_excel_lines(file_path):
@@ -75,14 +75,14 @@ def extract_item_lines(lines):
             continue
        
         # group line
-        if is_group_line(line):
+        if is_group_head_line(line):
             # print(f"⏭️  group行 [{line_num}]: {repr(line.strip()[:50])}")
             belong_item = False
             continue
         
         # Item collection: check if it is item line, 
         # if yes, collect it; if not, check if it is details line, if yes, collect it; if not, skip it.
-        if is_item_line(line):
+        if is_product_line(line):
             # if line.split()[1]=="Discount":
             #     print(line.split())
             # print(f"✅ 产品行 [{line_num}]: {repr(line.strip()[:60])}")
@@ -119,7 +119,7 @@ def is_start_line(line):
         return True
     return False
  
-def is_group_line(line):
+def is_group_head_line(line):
     # group line（such as: "1        - Zeochem Donghai -"）
     # group line（such as: "1        * Zeochem Donghai *"）
     # group line（such as: "1        # Zeochem Donghai #"）

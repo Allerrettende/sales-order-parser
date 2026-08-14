@@ -57,8 +57,7 @@ def extract_date(date):
             return None
 
 
-
-def is_item_line(line):
+def is_product_line(line):
     # Item line: contain Pos nr at begin, and two amount format， and last 1-3 digits.
     # including group discount.
     pattern = re.compile(r'^(\d+(?:\.\d+)*)\s+.*\s+(-?\d+(?:[.,]\d{3})*[.,]\d{2})\s+(-?\d+(?:[.,]\d{3})*[.,]\d{2})\s+\d{1,3}$') 
@@ -67,10 +66,3 @@ def is_item_line(line):
         return True
     return False
 
-def is_group_Head_line(line):
-    # group line（such as: "1        - Zeochem Donghai - 18,298.00"）
-
-    pattern = re.compile(r'^(\d+(\.\d+)*)\s+[-*#].*[-*#]?\d{2}$')
-    if pattern.search(line.strip()):
-        return True
-    return False

@@ -1,5 +1,5 @@
 import re
-from utils import parse_amount, extract_date, is_item_line
+from utils import parse_amount, extract_date, is_product_line
 from order_extract import extract_item_lines, extract_customer_lines, extract_header_lines, read_excel_lines
 
 def parse_header(lines):
@@ -152,7 +152,7 @@ def is_country_line(line):
 
 # ************ Parse item lines, including product lines and detail lines ************
 
-def parse_item(line):
+def parse_item(line,group):
 
     """
     Parse a product line into a structured dictionary.
@@ -162,68 +162,98 @@ def parse_item(line):
     """
     parts=line.split()
 
-    # if is_group_line(line):
-    #     # group line（such as: "1        - Zeochem Donghai "）
-    #     return {
-    #         "pos_number": parts[0],
-    #         "item_description": " ".join(parts[1:]),
-    #         "item_details": [],
-    #         "quantity": 0,
-    #         "unit": '',
-    #         "unit_price": 0,
-    #         "amount": 0,
-    #         "discount":0, # extract when details is parsed.
-    #         "tax_code": '',
-    #     }
+    if group:
+        # group foot line（such as: "1        - Zeochem Donghai 12,345.66 "）
+        return {
+            "pos_number": parts[0],
+            "item_description": " ".join(parts[1:]),
+            "item_details": [],
+            "quantity": 0,
+            "unit": '',
+            "unit_price": 0,
+            "amount": 0,
+            "discount":0, # extract when details is parsed.
+            "tax_code": '',
+        }
     
-    # parse pos_number, item description, quantity, unit, unit_price, amount, tax_code from parts
-    return {
-        "pos_number": parts[0],
-        "item_description": " ".join(parts[1:-5]),
-        "item_details": [],
-        "quantity": parse_amount(parts[-5]),
-        "unit": parts[-4],
-        "unit_price": parse_amount(parts[-3]),
-        "amount": parse_amount(parts[-2]),
-        "discount":0, # extract when details is parsed.
-        "tax_code": parts[-1],
-    }
+    else:
+        # parse pos_number, item description, quantity, unit, unit_price, amount, tax_code from parts
+        return {
+            "pos_number": parts[0],
+            "item_description": " ".join(parts[1:-5]),
+            "item_details": [],
+            "quantity": parse_amount(parts[-5]),
+            "unit": parts[-4],
+            "unit_price": parse_amount(parts[-3]),
+            "amount": parse_amount(parts[-2]),
+            "discount":0, # extract when details is parsed.
+            "tax_code": parts[-1],
+        }
 
 def parse_item_discount(line):
 
-    # abzgl.       100.00      %                  -27,000.00
-    pattern=re.compile(r'.*%.*(-\d+(?:[.,]\d{3})*[.,]\d{2})$')
+    #        100.00      %                  -27,000.00
+    pattern=re.compile(r'\d+[.,]\d{2}\s+%\s+(-\d+(?:[.,]\d{3})*[.,]\d{2})$')
     if pattern.search(line.strip()):
         return parse_amount(pattern.search(line.strip()).group(1))
     return None
- 
+
+def is_group_footer_line(line):
+    # group line（such as: "1        - Zeochem Donghai - 18,298.00"）
+    pattern = re.compile(r'^(\d+(?:\.\d+)*)(\s+[-*#].*[-*#]?)\s+(\d+(?:[.,]\d{3})*[.,]\d{2})$')
+    if pattern.search(line.strip()):
+        return True
+    return False
+
  # parse item lines that have been verified through order extraction, only product lines and item details lines are included, other lines have been eliminated.
  # The item details are the lines after the product line until the next product line or end of file.
- # return a generator of parsed items, each item is a dictionary with keys: pos_number, item_description（list), item_details, quantity, unit, unit_price, amount, tax_code.
+ # return a gerator of parsed items, each item is a dictionary with keys: pos_number, item_description（list), item_details, quantity, unit, unit_price, amount, tax_code.
 def gen_parse_items(lines):
 
     current_item = None
-
+    is_group=False
+    group_has_discount=True
     for line in lines:
-
-        if is_item_line(line):
+        # print(line)
+        if is_group_footer_line(line):
+            is_group=True
+            group_has_discount=False
             if current_item:
-                
-                # return the current parsed item before starting a new one
-                # the current_item is a dictionary for last product line, and the item_details is a multi-line string below product line.
+                # return current item, it should be product
                 yield current_item
-            # start parsing a new item
-            current_item = parse_item(line)
-        else:
-            if current_item:
-                discount=parse_item_discount(line)
-                if discount:
-                    current_item["discount"]=discount
-                #  Check whether it begins with a formula symbol, Force single quotes to be treated as text
-                # if line and line[0] in '=+-@':
-                #     line = ' ' + line
-                else:
-                    current_item["item_details"].append(line)
+            current_item=parse_item(line, is_group)
+            continue
+
+        if is_product_line(line):
+            if is_group:
+                is_group=False
+                # situation 1:last line belongs to group footer, check if group discount existing
+                # if group discount existing, return group footer line
+                if current_item :#and group_has_discount:
+                    # return current item, it should be group line.
+                    # 
+                    if group_has_discount:
+                        yield current_item
+                    current_item=parse_item(line, is_group)
+            else:
+                # situation 2: last line belongs to product, 
+                # return the current item, it should be product line.
+                is_group=False
+                if current_item:
+                    yield current_item
+                current_item=parse_item(line, is_group)
+            continue
+
+        # # Details line
+        if current_item:
+            discount=parse_item_discount(line)
+            if discount:
+                if is_group:
+                    group_has_discount=True
+                current_item["discount"]=discount
+            else:
+                current_item["item_details"].append(line)
+                
     # return the last parsed item if any
     if current_item:
         yield current_item
