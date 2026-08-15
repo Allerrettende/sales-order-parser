@@ -1,5 +1,4 @@
 import re
-from utils import is_product_line 
 import openpyxl
 
 def read_excel_lines(file_path):
@@ -52,7 +51,6 @@ def extract_item_lines(lines):
     #return stripped lines that are likely to contain item information, and details, with error handling and logging
     item_lines = []
     starting = False
-    belong_item = False
     
     for line_num, line in enumerate(lines, 1):
 
@@ -74,33 +72,20 @@ def extract_item_lines(lines):
             # print(f"⏭️  排除行 [{line_num}]: {repr(line.strip()[:50])}")
             continue
        
+        # Collect group header line, remark of group, product lines, details of prduct, group footer line, and details of group, such as discount.
+        item_lines.append(line.strip())
+
+        # below are for test purpose
+
+        # if is_product_line(line):
+        #     # if line.split()[1]=="Discount":
+        #     #     print(line.split())
+        #     # print(f"✅ 产品行 [{line_num}]: {repr(line.strip()[:60])}")
+
         # group line
-        if is_group_head_line(line):
-            # print(f"⏭️  group行 [{line_num}]: {repr(line.strip()[:50])}")
-            belong_item = False
-            continue
-        
-        # Item collection: check if it is item line, 
-        # if yes, collect it; if not, check if it is details line, if yes, collect it; if not, skip it.
-        if is_product_line(line):
-            # if line.split()[1]=="Discount":
-            #     print(line.split())
-            # print(f"✅ 产品行 [{line_num}]: {repr(line.strip()[:60])}")
-            item_lines.append(line.strip())
-            belong_item = True
-  
-        else:
-            # item details collection base on status machine: 
-            # check status machine: if belong_item is True, then next line is details line, if not, skip it.
-            if not belong_item:
-                # print(f"⏭️  跳过group details [{line_num}]: {repr(line.strip()[:50])}")
-                continue
+        # if is_group_head_line(line):
+        #     # print(f"⏭️  group行 [{line_num}]: {repr(line.strip()[:50])}")
 
-
-            # print(f"📝 描述行 [{line_num}]: {repr(line.strip()[:60])}")
-            item_lines.append(line.strip())
-        
-    
     # print(f"\n总共收集了 {len(item_lines)} 行")
     
     return item_lines
@@ -119,16 +104,6 @@ def is_start_line(line):
         return True
     return False
  
-def is_group_head_line(line):
-    # group line（such as: "1        - Zeochem Donghai -"）
-    # group line（such as: "1        * Zeochem Donghai *"）
-    # group line（such as: "1        # Zeochem Donghai #"）
-    # group line（such as: "1.1        # Zeochem Donghai "）
-    pattern = re.compile(r'^(\d+(\.\d+)*)\s+[-*#].*[-*#]$')
-    if pattern.search(line.strip()):
-        return True
-    return False
-
 def is_exlude_line(line):
         
     # lines not like defined before, and should be eliminated.

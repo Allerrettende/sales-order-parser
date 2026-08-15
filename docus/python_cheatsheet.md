@@ -20,3 +20,6 @@ python -m venv .venv
 pip freeze > requirements.txt
 ```
 
+# .py文件误删恢复
+1. VS Code 中按下 Ctrl+Shift+P 打开命令面板。输入 Local History: Find Entry to Restore 并选择它。然后输入你被删除的文件名 main.py，看看是否能找到并恢复它
+2. Time line查找删除的文件，按右键恢复。

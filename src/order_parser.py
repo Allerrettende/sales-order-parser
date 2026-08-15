@@ -1,5 +1,5 @@
 import re
-from utils import parse_amount, extract_date, is_product_line
+from utils import parse_amount, extract_date
 from order_extract import extract_item_lines, extract_customer_lines, extract_header_lines, read_excel_lines
 
 def parse_header(lines):
@@ -193,14 +193,40 @@ def parse_item(line,group):
 def parse_item_discount(line):
 
     #        100.00      %                  -27,000.00
-    pattern=re.compile(r'\d+[.,]\d{2}\s+%\s+(-\d+(?:[.,]\d{3})*[.,]\d{2})$')
+    #         zzgl.                     10.00 %             228.90
+    # the amount may be negative and positive.
+
+    pattern=re.compile(r'\d+[.,]\d{2}\s+%\s+(-?\d+(?:[.,]\d{3})*[.,]\d{2})$')
     if pattern.search(line.strip()):
+        # print(line)
         return parse_amount(pattern.search(line.strip()).group(1))
     return None
+
+def is_group_header_line(line):
+    # group line（such as: "1        - Zeochem Donghai -"）
+    # group line（such as: "1        * Zeochem Donghai *"）
+    # group line（such as: "1        # Zeochem Donghai #"）
+    # group line（such as: "1.1        # Zeochem Donghai "）
+    pattern = re.compile(r'^(\d+(\.\d+)*)\s+[-*#].*[-*#]$')
+    if pattern.search(line.strip()):
+        return True
+    return False
 
 def is_group_footer_line(line):
     # group line（such as: "1        - Zeochem Donghai - 18,298.00"）
     pattern = re.compile(r'^(\d+(?:\.\d+)*)(\s+[-*#].*[-*#]?)\s+(\d+(?:[.,]\d{3})*[.,]\d{2})$')
+    if pattern.search(line.strip()):
+        return True
+    return False
+
+def is_product_line(line):
+    # Item line: contain Pos nr at begin, and two amount format， and last 1-3 digits.
+    # including group discount.
+    # 1.1.11. FGT LC duplex flange               32.00 Piece           20.00        640.00 840
+    # 1.1.9   25 galvanized pipe 4310 meters           4,310.00 Piece                 25.00       107,750.00 840
+
+    pattern = re.compile(r'^(\d+(?:\.\d+)*)\.?\s+.*\s+(-?\d+(?:[.,]\d{3})*[.,]\d{2})\s+(-?\d+(?:[.,]\d{3})*[.,]\d{2})\s+\d{1,3}$') 
+    # If the line doesn't match the expected format return None
     if pattern.search(line.strip()):
         return True
     return False
@@ -212,52 +238,41 @@ def gen_parse_items(lines):
 
     current_item = None
     is_group=False
-    group_has_discount=True
+
     for line in lines:
-        # print(line)
-        if is_group_footer_line(line):
+        # Group
+        if is_group_footer_line(line) or is_group_header_line(line):
             is_group=True
-            group_has_discount=False
             if current_item:
                 # return current item, it should be product
                 yield current_item
             current_item=parse_item(line, is_group)
             continue
 
+        #Product and service, order level discount.
         if is_product_line(line):
-            if is_group:
-                is_group=False
-                # situation 1:last line belongs to group footer, check if group discount existing
-                # if group discount existing, return group footer line
-                if current_item :#and group_has_discount:
-                    # return current item, it should be group line.
-                    # 
-                    if group_has_discount:
-                        yield current_item
-                    current_item=parse_item(line, is_group)
-            else:
-                # situation 2: last line belongs to product, 
-                # return the current item, it should be product line.
-                is_group=False
-                if current_item:
-                    yield current_item
-                current_item=parse_item(line, is_group)
+            is_group=False
+            # situation 1:last line belongs to group
+            if current_item:
+                # return current item, it should be group line.
+                yield current_item
+            current_item=parse_item(line, is_group)
             continue
 
-        # # Details line
+        # Details line
         if current_item:
             discount=parse_item_discount(line)
+            # Item level discount
             if discount:
-                if is_group:
-                    group_has_discount=True
-                current_item["discount"]=discount
+                
+                # current_item["discount"] = discount
+                current_item["discount"]+=discount # repesat discount some time.
             else:
                 current_item["item_details"].append(line)
                 
     # return the last parsed item if any
     if current_item:
         yield current_item
-
 
 def parse_orders(raw_dir):
     """
@@ -268,7 +283,8 @@ def parse_orders(raw_dir):
     # sorted will convert the generator to list.
     # since we need to know how many files are proccessed, we use list for files here,but not generator.
 
-    order_files = sorted(raw_dir.glob("O*.xlsx"))
+    # order_files = sorted(raw_dir.glob("O*.xlsx"))
+    order_files = sorted(raw_dir.glob("Order Confirmation ????-??????.xlsx"))
     if not order_files:
         return []
 
@@ -278,6 +294,8 @@ def parse_orders(raw_dir):
         try:
             #Read all lines in order excel file.    
             lines = read_excel_lines(file)
+            if len(lines)==0:
+                continue
             # parse customer
             customer = parse_customer(extract_customer_lines(lines))
             # parse header
