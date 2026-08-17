@@ -26,7 +26,7 @@ def parse_header(lines):
         # date should be in format "day month year"
         pattern = r'Date\s+\d{1,2}[./-]\d{1,2}[./-]\d{4}'
         match = re.search(pattern, line)
-        if match and line_num<6: # Date is in line 4
+        if match and line_num<6: # Date is in top 6 lines.
             # convert to ISO standard date format
             date_matched=extract_date(match.group(0))
             header["document_date"] = date_matched
@@ -37,7 +37,7 @@ def parse_header(lines):
             header["customer_no"] = match.group(1)
 
         match = re.search(r"Agent\s+(.+)",line)
-        if match:
+        if match and line_num<10: # agent line in top 10 lines.
             header["agent"] = match.group(1).strip()
 
         match = re.search(
@@ -67,6 +67,7 @@ def parse_header(lines):
 #  #*************************************************
 def parse_customer(lines):
 
+    get_country_already=False
     customer = {
         "customer_name": None,
         "customer_address": None,
@@ -88,15 +89,25 @@ def parse_customer(lines):
     address_parts=[]
     for line in reversed(lines[1:]): # first line is fixed for customer name.
         # Country
-        if is_country_line(line):
-            customer["customer_country"] = line
+        if is_country_line(line) and not get_country_already:
+            customer["customer_country"] = line.split()[-1]
+            get_country_already=True
+            # in some case, post, city and country are in same line.
+
             continue
 
-        # post code, and city
-        if (result := get_pcode_city(line)):  
-            postcode, city = result
+        # # post code, and city
+        # if (result := get_pcode_city(line)):  
+        #     postcode, city = result
+        #     customer["customer_postcode"]=postcode
+        #     if customer["customer_city"]: 
+        #         customer["customer_city"]=city
+        #     continue
+
+        if (result := get_pcode(line)):  
+            postcode = result
             customer["customer_postcode"]=postcode
-            customer["customer_city"]=city
+
             continue
 
         # if lines are not a country , post code and customer either, lines will be recognized as address line
@@ -107,9 +118,17 @@ def parse_customer(lines):
             
     return customer
 
+def get_pcode(line):
+    # Postcode + City
+    pattern = r"^(\d{5,7})\s+(\w*)?"
+    match = re.match(pattern,line)
+    if match:
+        return match.group(1)
+    return None
+
 def get_pcode_city(line):
     # Postcode + City
-    pattern = r"^(\d{5,6})\s+(.+)"
+    pattern = r"^(\d{5,7})\s+(\w*)?"
     match = re.match(pattern,line)
     if match:
         return match.group(1),match.group(2)
