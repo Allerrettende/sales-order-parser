@@ -92,22 +92,13 @@ def parse_customer(lines):
         if is_country_line(line) and not get_country_already:
             customer["customer_country"] = line.split()[-1]
             get_country_already=True
-            # in some case, post, city and country are in same line.
-
             continue
 
         # # post code, and city
-        # if (result := get_pcode_city(line)):  
-        #     postcode, city = result
-        #     customer["customer_postcode"]=postcode
-        #     if customer["customer_city"]: 
-        #         customer["customer_city"]=city
-        #     continue
-
-        if (result := get_pcode(line)):  
-            postcode = result
+        if (result := get_pcode_city(line)):  
+            postcode, city = result
             customer["customer_postcode"]=postcode
-
+            customer["customer_city"]=city
             continue
 
         # if lines are not a country , post code and customer either, lines will be recognized as address line
@@ -118,17 +109,9 @@ def parse_customer(lines):
             
     return customer
 
-def get_pcode(line):
-    # Postcode + City
-    pattern = r"^(\d{5,7})\s+(\w*)?"
-    match = re.match(pattern,line)
-    if match:
-        return match.group(1)
-    return None
-
 def get_pcode_city(line):
     # Postcode + City
-    pattern = r"^(\d{5,7})\s+(\w*)?"
+    pattern = r"(^\d{5,7})\s*(\w*)?"
     match = re.match(pattern,line)
     if match:
         return match.group(1),match.group(2)
@@ -310,13 +293,16 @@ def parse_orders(raw_dir):
     orders_data = []  # save all orders data，initialization is needed.
     failed_files = []
     for file in order_files:
+        
         try:
             #Read all lines in order excel file.    
             lines = read_excel_lines(file)
+            
             if len(lines)==0:
                 continue
             # parse customer
             customer = parse_customer(extract_customer_lines(lines))
+     
             # parse header
             header = parse_header(extract_header_lines(lines))
             
@@ -346,3 +332,31 @@ def parse_orders(raw_dir):
     print(f"Successfully parsed {len(orders_data)} out of {len(order_files)} file(s)")
     return orders_data
 
+if __name__ == "__main__":
+
+    from pathlib import Path
+    import openpyxl
+    import pandas as df
+    from datetime import datetime
+
+    from order_extract import read_excel_lines, extract_item_lines,  extract_customer_lines, extract_header_lines
+    from order_parser import gen_parse_items, parse_header,parse_customer, parse_orders
+    from excel_export import orders_to_dataframe, export_to_excel_with_formatting
+    from report import print_order_summary
+
+    # real data
+    raw_data_dir = Path(r"D:\OC\Test")
+    # raw_data_dir = Path(r"D:\PythonProjects\sales-order-parser\data\raw")
+
+
+    processed_dir = Path(r"D:\OC")
+
+    orders_data = parse_orders(raw_data_dir)
+    # print(orders_data)
+    if orders_data:
+
+        # 转换为 DataFrame
+        df = orders_to_dataframe(orders_data)
+        # 导出详细数据到 Excel
+        output_file = processed_dir / f"all_orders_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
+        export_to_excel_with_formatting(df, output_file)

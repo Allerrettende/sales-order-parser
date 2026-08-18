@@ -31,6 +31,7 @@ def extract_customer_lines(all_lines):
             continue
         line=line.strip()
         line = re.split(r"\s{5,}",line)[0]
+        
         if line:
             customer_lines.append(line)
 
