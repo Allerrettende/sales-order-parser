@@ -15,18 +15,20 @@ def main():
     # raw_data_dir = Path(r"D:\PythonProjects\sales-order-parser\data\raw")
 
     # real data
-    raw_data_dir = Path(r"D:\OC\OC20260813-Excel-Txt")
-    processed_dir = Path(r"D:\PythonProjects\sales-order-parser\data\processed")
+    raw_data_dir = Path(r"D:\OC\OC 2014-20260818-Excel")
+    processed_dir = Path(r"D:\OC")
     processed_dir.mkdir(parents=True, exist_ok=True)
 
     orders_data = parse_orders(raw_data_dir)
     if not orders_data:
+        print("No files found")
         return
 
     # 转换为 DataFrame
     df = orders_to_dataframe(orders_data)
     
     # 导出详细数据到 Excel
+
     output_file = processed_dir / f"all_orders_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
     export_to_excel_with_formatting(df, output_file)
     print(f"\n✅ Detailed orders exported to: {output_file}")

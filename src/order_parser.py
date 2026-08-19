@@ -286,6 +286,7 @@ def parse_orders(raw_dir):
     # since we need to know how many files are proccessed, we use list for files here,but not generator.
 
     # order_files = sorted(raw_dir.glob("O*.xlsx"))
+    # file name and length is required strictly.
     order_files = sorted(raw_dir.glob("Order Confirmation ????-??????.xlsx"))
     if not order_files:
         return []

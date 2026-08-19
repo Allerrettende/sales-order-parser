@@ -119,7 +119,7 @@ def batch_export(input_folder, output_folder):
 
 if __name__ == "__main__":
 
-    input_folder = r"D:\OC\OC-PDF"
-    output_folder = r"D:\OC\OC-Excel"
+    input_folder = r"D:\OC\OC 2014-20260818-PDF"
+    output_folder = r"D:\OC\OC 2014-20260818-Excel"
     
     batch_export(input_folder, output_folder)
