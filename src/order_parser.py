@@ -208,8 +208,8 @@ def is_group_header_line(line):
     # group line（such as: "1        - Zeochem Donghai -"）
     # group line（such as: "1        * Zeochem Donghai *"）
     # group line（such as: "1        # Zeochem Donghai #"）
-    # group line（such as: "1.1        # Zeochem Donghai "）
-    pattern = re.compile(r'^(\d+(\.\d+)*)\s+[-*#].*[-*#]$')
+    # group line（such as: "1.1        --- Zeochem Donghai --- lead time"）
+    pattern = re.compile(r'^(\d+(?:\.\d+)*)(\s+[-*#].*[-*#]?)\s*')
     if pattern.search(line.strip()):
         return True
     return False
@@ -242,21 +242,24 @@ def gen_parse_items(lines):
     is_group=False
 
     for line in lines:
-        # Group
-        if is_group_footer_line(line) or is_group_header_line(line):
-            is_group=True
-            if current_item:
-                # return current item, it should be product
-                yield current_item
-            current_item=parse_item(line, is_group)
-            continue
 
         #Product and service, order level discount.
+        # at Firstly, parse the product lines to prevent any line from being mistaken for a group line.
+
         if is_product_line(line):
             is_group=False
             # situation 1:last line belongs to group
             if current_item:
                 # return current item, it should be group line.
+                yield current_item
+            current_item=parse_item(line, is_group)
+            continue
+
+        # Group
+        if is_group_footer_line(line) or is_group_header_line(line):
+            is_group=True
+            if current_item:
+                # return current item, it should be product
                 yield current_item
             current_item=parse_item(line, is_group)
             continue
@@ -342,7 +345,7 @@ if __name__ == "__main__":
 
     from order_extract import read_excel_lines, extract_item_lines,  extract_customer_lines, extract_header_lines
     from order_parser import gen_parse_items, parse_header,parse_customer, parse_orders
-    from excel_export import orders_to_dataframe, export_to_excel_with_formatting
+    from excel_process import orders_to_dataframe, export_to_excel_with_formatting
     from report import print_order_summary
 
     # real data

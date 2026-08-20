@@ -116,7 +116,7 @@ def is_exlude_line(line):
         re.compile(r'Pos\..*Numbe', re.IGNORECASE), # header line, such as 'Pos.        Numbe'
         re.compile(r'Unit.*Price', re.IGNORECASE), # header line, such as 'Pos.        Numbe'Unit.*Price
         re.compile(r'_x000C_'),          # page break line in excel, should be excluded.
-        re.compile(r'^[*#].*'),         # # remark: "         *** Lead time: 1 week.***"
+        # re.compile(r'^[-*#].*'),         # # remark: "*** Lead time: 1 week.***"
     ]
 
     should_exclude = False
