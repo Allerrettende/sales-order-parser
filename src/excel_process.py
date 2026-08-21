@@ -189,35 +189,30 @@ from openpyxl import load_workbook
 from openpyxl.utils import get_column_letter
 import gc
 
-def append_new_orders_from_b_to_a(
+def append_records_from_another_file(
     main_file,      # A文件：主表（已格式化）
     temp_file,      # B文件：中间表（新订单）
     sheet_name='Orders',
     order_column='sales_order_no'
 ):
     """
-    从中间文件(B)追加新订单到主文件(A)，保持A的格式不变
+    从中间文件(B)追加新订单到主文件(A:Table)
     
     Args:
         main_file: 主文件路径（已格式化的正式表）
-        temp_file: 中间文件路径（每日新订单）
+        temp_file: 中间文件路径（每日新订单列表）
         sheet_name: 工作表名称
         order_column: 订单号列名
     """
-    print("=" * 60)
-    print("📋 Starting order import from temp file to main file")
-    print("=" * 60)
     
     try:
         # 1. 读取中间文件(B)的数据
         new_df = pd.read_excel(temp_file, sheet_name=sheet_name)
         if new_df.empty:
-            print("❌ Temp file is empty, nothing to import")
             return False
         
         # 2. 获取新订单的订单号列表
         new_orders = new_df[order_column].unique()
-        # print(f"📋 Found {len(new_orders)} new orders: {new_orders[:5].tolist()}{'...' if len(new_orders) > 5 else ''}")
         
         # 3. 读取主文件(A)的现有订单号（只读，不加载全部数据）
         # print(f"📂 Reading main file: {main_file}")
@@ -226,36 +221,30 @@ def append_new_orders_from_b_to_a(
         from openpyxl import load_workbook
         
         # 方法1：使用pandas读取（简单，但会加载全部数据到内存）
-        # existing_df = pd.read_excel(main_file, sheet_name=sheet_name)
-        # existing_orders = set(existing_df[order_column].unique())
+        existing_df = pd.read_excel(main_file, sheet_name=sheet_name)
+        existing_orders = set(existing_df[order_column].unique())
         
         # 方法2：使用openpyxl只读模式（内存友好）
-        existing_orders = get_existing_order_numbers(main_file, sheet_name, order_column)
+        # existing_orders = get_existing_order_numbers(main_file, sheet_name, order_column)
         
         # 4. 检查哪些订单是新的
         new_orders_set = set(new_orders)
-        duplicate_orders = new_orders_set & existing_orders
-        new_orders_to_add = new_orders_set - existing_orders
+        duplicate_orders = new_orders_set & existing_orders # 交集
+        new_orders_to_add = new_orders_set - existing_orders # 去集
         
         if duplicate_orders:
             print(f"⚠️ Found {len(duplicate_orders)} orders already exist:")
-            # for order in list(duplicate_orders)[:5]:
-            #     print(f"   - {order}")
-            # if len(duplicate_orders) > 5:
-            #     print(f"   ... and {len(duplicate_orders) - 5} more")
         
         if not new_orders_to_add:
             print("ℹ️ No new orders to add")
             return True
         
         print(f"✅ Found {len(new_orders_to_add)} new orders to add:")
-        # for order in list(new_orders_to_add)[:5]:
-        #     print(f"   - {order}")
-        # if len(new_orders_to_add) > 5:
-        #     print(f"   ... and {len(new_orders_to_add) - 5} more")
+
         
         # 5. 筛选出新订单的数据
         df_to_add = new_df[new_df[order_column].isin(new_orders_to_add)]
+        
         print(f"📊 Will add {len(df_to_add)} rows")
         
         # 6. 追加到主文件（保持格式）
@@ -379,6 +368,33 @@ def append_data_preserve_format(file_path, df_to_add, sheet_name, order_column, 
                 if col_name is not None and col_name in row_data:
                     value = row_data[col_name]
                     cell = sheet.cell(row=row_idx, column=col_idx, value=value)
+
+        # ===================== 如果当前excel sheet中的是Table.
+        # 调整Table范围
+        # 获取当前最后一行
+        new_last_row = sheet.max_row   
+        # 假设你的 Table 名称是 'Table1'
+        table_name = 'Table1'
+        if table_name in sheet.tables:
+            table = sheet.tables[table_name]
+            
+            # 解析旧范围，保留起始行，只更新结束行
+            # 例如，从旧范围 "A1:N2" 中解析出起始列 "A" 和结束列 "N"
+            start_cell = table.ref.split(':')[0] 
+            end_col = table.ref.split(':')[1] 
+            # 从结束列引用中提取列字母，例如从 "N2" 提取 "N"
+            # 更稳健的方式是用 openpyxl.utils 解析，但这里用简单字符串处理
+            import re
+            end_col_letter = re.sub(r'[\d]+', '', end_col) 
+            
+            # 构建新的范围字符串，例如 "A1:N101"
+            new_ref = f"{start_cell}:{end_col_letter}{new_last_row}"
+            table.ref = new_ref
+            print(f"✅ Table range updated to: {new_ref}")
+        else:
+            print(f"⚠️ Table '{table_name}' not found.")
+
+        # =====================调整Table结束。
 
       # 保存文件
         book.save(file_path)

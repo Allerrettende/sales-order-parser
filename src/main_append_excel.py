@@ -1,7 +1,7 @@
 import pandas as pd
 from pathlib import Path
 from order_parser import parse_orders
-from excel_process import  append_multiple_orders, append_new_orders_from_b_to_a
+from excel_process import  append_multiple_orders, append_records_from_another_file
 from order_dataframe import orders_to_dataframe
 
 def append_daily():
@@ -31,12 +31,12 @@ def append_daily():
 
 def daily_import():
     """
-    每日导入新订单
+    每日导入新订单, between two files with same structure.
     """
     main_file = r'D:\OC\OC Master List.xlsx'      # A文件：主表（已格式化）
     temp_file = r'D:\OC\oc_temp.xlsx'        # B文件：中间表（新订单）
     
-    success = append_new_orders_from_b_to_a(
+    success = append_records_from_another_file(
         main_file=main_file,
         temp_file=temp_file,
         sheet_name='Orders',
